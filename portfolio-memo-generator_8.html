@@ -1,0 +1,1486 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Portfolio Memo Generator</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #1a1a2e;
+    --paper: #f7f5f0;
+    --cream: #ede9e0;
+    --accent: #c4622d;
+    --accent-light: #e8d5c8;
+    --muted: #7a7570;
+    --border: #d8d2c8;
+    --success: #2d6a4f;
+    --card: #ffffff;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--paper);
+    color: var(--ink);
+    min-height: 100vh;
+  }
+
+  /* ── HEADER ── */
+  header {
+    background: var(--ink);
+    color: var(--paper);
+    padding: 28px 48px;
+    display: flex;
+    align-items: baseline;
+    gap: 16px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.15);
+  }
+  header h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.5rem;
+    letter-spacing: 0.01em;
+  }
+  header span {
+    font-size: 0.8rem;
+    color: var(--accent-light);
+    font-weight: 300;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+
+  /* ── LAYOUT ── */
+  .app {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0;
+    min-height: calc(100vh - 76px);
+  }
+
+  /* ── LEFT PANEL ── */
+  .form-panel {
+    padding: 40px 48px;
+    border-right: 1px solid var(--border);
+    overflow-y: auto;
+    max-height: calc(100vh - 76px);
+  }
+
+  .section-label {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.05rem;
+    color: var(--accent);
+    margin-bottom: 20px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--accent-light);
+  }
+
+  .meta-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 32px;
+  }
+
+  label {
+    display: block;
+    font-size: 0.72rem;
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+
+  input[type="text"], input[type="date"], input[type="email"], textarea, select {
+    width: 100%;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 10px 12px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.9rem;
+    color: var(--ink);
+    transition: border-color 0.2s, box-shadow 0.2s;
+    appearance: none;
+  }
+  input:focus, textarea:focus, select:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(196,98,45,0.12);
+  }
+  textarea { resize: vertical; min-height: 72px; line-height: 1.5; }
+
+  /* ── PROJECT CARDS ── */
+  .projects-container { margin-bottom: 32px; }
+  .project-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 20px;
+    margin-bottom: 16px;
+    position: relative;
+    transition: box-shadow 0.2s;
+  }
+  .project-card:hover { box-shadow: 0 2px 12px rgba(0,0,0,0.07); }
+  .project-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+  }
+  .project-card-header span {
+    font-size: 0.72rem;
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .remove-btn {
+    background: none;
+    border: none;
+    color: var(--muted);
+    cursor: pointer;
+    font-size: 1.1rem;
+    padding: 2px 6px;
+    border-radius: 3px;
+    transition: color 0.2s, background 0.2s;
+  }
+  .remove-btn:hover { color: var(--accent); background: var(--accent-light); }
+
+  .field-row { margin-bottom: 12px; }
+  .field-row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+
+  .status-select { cursor: pointer; }
+
+  .add-project-btn {
+    width: 100%;
+    padding: 12px;
+    background: none;
+    border: 1.5px dashed var(--border);
+    border-radius: 6px;
+    color: var(--muted);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.88rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    letter-spacing: 0.05em;
+  }
+  .add-project-btn:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: var(--accent-light);
+  }
+
+  /* ── GENERATE BTN ── */
+  .generate-btn {
+    width: 100%;
+    padding: 16px;
+    background: var(--accent);
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.88rem;
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.1s;
+    margin-top: 8px;
+  }
+  .generate-btn:hover { background: #a84e22; }
+  .generate-btn:active { transform: scale(0.99); }
+  .generate-btn:disabled { background: var(--border); cursor: not-allowed; }
+
+  /* ── RIGHT PANEL ── */
+  .output-panel {
+    padding: 40px 48px;
+    overflow-y: auto;
+    max-height: calc(100vh - 76px);
+    display: flex;
+    flex-direction: column;
+  }
+
+  .output-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+  }
+  .output-toolbar h2 {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.05rem;
+    color: var(--muted);
+  }
+  .toolbar-actions { display: flex; gap: 10px; }
+
+  .action-btn {
+    padding: 8px 16px;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+    background: var(--card);
+    color: var(--ink);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.8rem;
+    font-weight: 500;
+    cursor: pointer;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    transition: all 0.2s;
+  }
+  .action-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .action-btn.primary { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+  .action-btn.primary:hover { background: var(--accent); border-color: var(--accent); }
+
+  /* ── MEMO PREVIEW ── */
+  .memo-preview {
+    flex: 1;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow-y: auto;
+    min-height: 0;
+  }
+
+  .memo-content {
+    padding: 40px 48px;
+    font-size: 0.92rem;
+    line-height: 1.75;
+    color: var(--ink);
+    min-height: 400px;
+    white-space: pre-wrap;
+    font-family: 'DM Sans', sans-serif;
+  }
+
+  .placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 400px;
+    color: var(--muted);
+    text-align: center;
+    gap: 12px;
+  }
+  .placeholder-icon { font-size: 2.5rem; opacity: 0.4; }
+  .placeholder p { font-size: 0.88rem; max-width: 240px; line-height: 1.6; }
+
+  .loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 400px;
+    gap: 16px;
+    color: var(--muted);
+  }
+  .spinner {
+    width: 32px; height: 32px;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .memo-rendered { padding: 40px 48px; }
+  .memo-rendered .memo-header { margin-bottom: 32px; border-bottom: 2px solid var(--ink); padding-bottom: 20px; }
+  .memo-rendered .memo-title { font-family: 'Playfair Display', serif; font-size: 1.4rem; margin-bottom: 12px; }
+  .memo-rendered .memo-meta { display: grid; grid-template-columns: auto 1fr; gap: 4px 16px; font-size: 0.85rem; }
+  .memo-rendered .meta-key { color: var(--muted); font-weight: 500; }
+  .memo-rendered .memo-body { font-size: 0.9rem; line-height: 1.8; }
+  .memo-rendered h3 { font-family: 'Playfair Display', serif; font-size: 1rem; margin: 28px 0 6px; color: var(--accent); border-bottom: 1px solid var(--accent-light); padding-bottom: 4px; }
+  .memo-rendered h4 { font-family: 'DM Sans', sans-serif; font-size: 0.88rem; font-weight: 600; margin: 16px 0 4px; color: var(--ink); letter-spacing: 0.03em; text-transform: uppercase; }
+  .memo-rendered p { margin-bottom: 10px; }
+  .memo-rendered ul { margin: 8px 0 12px 20px; }
+  .memo-rendered li { margin-bottom: 4px; }
+
+  .status-badge {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    letter-spacing: 0.05em;
+  }
+  .status-on-track { background: #d4edda; color: #155724; }
+  .status-at-risk { background: #fff3cd; color: #856404; }
+  .status-delayed { background: #f8d7da; color: #721c24; }
+  .status-completed { background: #d1ecf1; color: #0c5460; }
+
+  /* copy toast */
+  .toast {
+    position: fixed;
+    bottom: 24px; right: 24px;
+    background: var(--success);
+    color: white;
+    padding: 12px 20px;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    opacity: 0;
+    transform: translateY(8px);
+    transition: all 0.3s;
+    pointer-events: none;
+    z-index: 200;
+  }
+  .toast.show { opacity: 1; transform: translateY(0); }
+
+  /* ── PASSWORD GATE ── */
+  .password-gate {
+    position: fixed; inset: 0;
+    background: var(--ink);
+    z-index: 1000;
+    display: flex; align-items: center; justify-content: center;
+    flex-direction: column;
+    gap: 0;
+  }
+  .password-gate.hidden { display: none; }
+  .password-gate-box {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 40px 44px;
+    max-width: 400px;
+    width: 90%;
+    box-shadow: 0 12px 48px rgba(0,0,0,0.3);
+  }
+  .password-gate-box h2 {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.3rem;
+    margin-bottom: 6px;
+    color: var(--ink);
+  }
+  .password-gate-box p {
+    font-size: 0.82rem;
+    color: var(--muted);
+    margin-bottom: 20px;
+    line-height: 1.5;
+  }
+  .password-gate-box input {
+    margin-bottom: 12px;
+    font-size: 1rem;
+    letter-spacing: 0.1em;
+  }
+  .password-gate-error {
+    font-size: 0.78rem;
+    color: #c0392b;
+    margin-bottom: 12px;
+    display: none;
+  }
+  .password-gate-error.show { display: block; }
+  .password-gate-btn {
+    width: 100%;
+    padding: 13px;
+    background: var(--accent);
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.88rem;
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  .password-gate-btn:hover { background: #a84e22; }
+
+  /* ── RECOVERY KEY BOX ── */
+  .recovery-key-box {
+    background: var(--paper);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 10px 14px;
+    font-family: monospace;
+    font-size: 0.82rem;
+    letter-spacing: 0.08em;
+    color: var(--ink);
+    word-break: break-all;
+    margin-bottom: 8px;
+    user-select: all;
+  }
+
+  /* ── API KEY MODAL ── */
+  .modal-overlay {
+    position: fixed; inset: 0;
+    background: rgba(26,26,46,0.6);
+    backdrop-filter: blur(3px);
+    z-index: 500;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .modal-overlay.hidden { display: none; }
+  .modal {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 36px 40px;
+    max-width: 480px;
+    width: 90%;
+    box-shadow: 0 8px 40px rgba(0,0,0,0.18);
+  }
+  .modal h2 {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.25rem;
+    margin-bottom: 10px;
+    color: var(--ink);
+  }
+  .modal p {
+    font-size: 0.85rem;
+    color: var(--muted);
+    line-height: 1.6;
+    margin-bottom: 20px;
+  }
+  .modal p a { color: var(--accent); text-decoration: none; }
+  .modal p a:hover { text-decoration: underline; }
+  .modal input {
+    margin-bottom: 8px;
+    font-family: monospace;
+    font-size: 0.85rem;
+    letter-spacing: 0.03em;
+  }
+  .modal-hint {
+    font-size: 0.75rem !important;
+    color: var(--muted) !important;
+    margin-bottom: 20px !important;
+  }
+  .modal-actions { display: flex; gap: 10px; justify-content: flex-end; }
+  .api-key-indicator {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 0.75rem; color: var(--accent-light);
+    cursor: pointer;
+    background: none; border: none;
+    padding: 4px 8px; border-radius: 4px;
+    transition: background 0.2s;
+  }
+  .api-key-indicator:hover { background: rgba(255,255,255,0.1); }
+  .api-key-indicator .dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: #e74c3c;
+    flex-shrink: 0;
+  }
+  .api-key-indicator .dot.connected { background: #2ecc71; }
+
+  /* ── TABS ── */
+  .tab-nav {
+    display: flex;
+    gap: 0;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 24px;
+  }
+  .tab-btn {
+    padding: 10px 20px;
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.8rem;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-bottom: -1px;
+  }
+  .tab-btn:hover { color: var(--ink); }
+  .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+  .tab-panel { display: none; flex: 1; flex-direction: column; min-height: 0; }
+  .tab-panel.active { display: flex; }
+
+  /* ── HISTORY ── */
+  .history-empty {
+    display: flex; flex-direction: column; align-items: center;
+    justify-content: center; min-height: 300px;
+    color: var(--muted); gap: 10px; text-align: center;
+  }
+  .history-empty .placeholder-icon { font-size: 2rem; opacity: 0.4; }
+  .history-empty p { font-size: 0.85rem; }
+
+  .history-list { display: flex; flex-direction: column; gap: 12px; overflow-y: auto; flex: 1; min-height: 0; }
+
+  .history-entry {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+    transition: box-shadow 0.2s;
+  }
+  .history-entry:hover { box-shadow: 0 2px 12px rgba(0,0,0,0.07); }
+  .history-entry-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 18px;
+    cursor: pointer;
+    user-select: none;
+  }
+  .history-entry-header:hover { background: var(--paper); }
+  .history-entry-meta { display: flex; flex-direction: column; gap: 2px; }
+  .history-entry-week { font-family: 'Playfair Display', serif; font-size: 0.95rem; color: var(--ink); }
+  .history-entry-date { font-size: 0.72rem; color: var(--muted); letter-spacing: 0.05em; }
+  .history-entry-actions { display: flex; gap: 8px; align-items: center; }
+  .history-delete-btn {
+    background: none; border: none; color: var(--muted);
+    cursor: pointer; font-size: 0.9rem; padding: 4px 6px;
+    border-radius: 3px; transition: all 0.2s;
+  }
+  .history-delete-btn:hover { color: var(--accent); background: var(--accent-light); }
+  .history-chevron { color: var(--muted); font-size: 0.8rem; transition: transform 0.2s; }
+  .history-entry.open .history-chevron { transform: rotate(180deg); }
+  .history-entry-body {
+    display: none; padding: 0 18px 18px;
+    font-size: 0.88rem; line-height: 1.75;
+    border-top: 1px solid var(--border);
+  }
+  .history-entry.open .history-entry-body { display: block; }
+  .history-entry-body h3 { font-family: 'Playfair Display', serif; font-size: 0.95rem; margin: 20px 0 5px; color: var(--accent); border-bottom: 1px solid var(--accent-light); padding-bottom: 3px; }
+  .history-entry-body h4 { font-size: 0.82rem; font-weight: 600; margin: 12px 0 3px; color: var(--ink); text-transform: uppercase; letter-spacing: 0.03em; }
+  .history-entry-body p { margin-bottom: 8px; }
+  .history-copy-btn { margin-top: 12px; }
+
+  .draft-saved {
+    font-size: 0.72rem; color: var(--muted);
+    letter-spacing: 0.05em; opacity: 0;
+    transition: opacity 0.5s;
+  }
+  .draft-saved.show { opacity: 1; }
+
+  @media (max-width: 900px) {
+    .app { grid-template-columns: 1fr; }
+    .form-panel, .output-panel { max-height: none; }
+    .form-panel { border-right: none; border-bottom: 1px solid var(--border); }
+    header { padding: 20px 24px; }
+    .form-panel, .output-panel { padding: 28px 24px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ── PASSWORD GATE ── -->
+<div class="password-gate" id="passwordGate">
+  <div class="password-gate-box">
+    <h2>Welcome back.</h2>
+    <p>Enter your password to access the Portfolio Memo Generator.</p>
+    <input type="password" id="passwordInput" placeholder="Password" onkeydown="if(event.key==='Enter') submitPassword()">
+    <div class="password-gate-error" id="passwordError">Incorrect password. Please try again.</div>
+    <button class="password-gate-btn" onclick="submitPassword()">Unlock</button>
+    <p style="text-align:center;margin-top:16px;margin-bottom:0">
+      <a href="#" onclick="showRecovery();return false;" style="font-size:0.78rem;color:var(--muted);text-decoration:underline;text-underline-offset:3px">Forgot password?</a>
+    </p>
+  </div>
+</div>
+
+<!-- ── PASSWORD MANAGEMENT MODAL ── -->
+<div class="modal-overlay hidden" id="pwModal">
+  <div class="modal">
+    <div id="pwModal-change">
+      <h2>Change Password</h2>
+      <p>Enter your current password, then choose a new one.</p>
+      <div class="field-row">
+        <label>Current Password</label>
+        <input type="password" id="pwCurrentInput" placeholder="Current password">
+      </div>
+      <div class="field-row">
+        <label>New Password</label>
+        <input type="password" id="pwNewInput" placeholder="New password">
+      </div>
+      <div class="field-row" style="margin-bottom:20px">
+        <label>Confirm New Password</label>
+        <input type="password" id="pwConfirmInput" placeholder="Confirm new password">
+      </div>
+      <div class="password-gate-error" id="pwChangeError" style="display:none;margin-bottom:12px"></div>
+      <div class="modal-actions">
+        <button class="action-btn" onclick="closePwModal()">Cancel</button>
+        <button class="action-btn primary" onclick="changePassword()">Update Password</button>
+      </div>
+    </div>
+    <div id="pwModal-recovery" style="display:none">
+      <h2>Password Recovery</h2>
+      <p>Enter your recovery key to reset your password. You can find it where you saved it when you first set up the app.</p>
+      <div class="field-row">
+        <label>Recovery Key</label>
+        <input type="text" id="pwRecoveryInput" placeholder="Paste your recovery key">
+      </div>
+      <div class="field-row" style="margin-bottom:20px">
+        <label>New Password</label>
+        <input type="password" id="pwRecoveryNew" placeholder="New password">
+      </div>
+      <div class="password-gate-error" id="pwRecoveryError" style="display:none;margin-bottom:12px"></div>
+      <div class="modal-actions">
+        <button class="action-btn" onclick="closePwModal()">Cancel</button>
+        <button class="action-btn primary" onclick="recoverPassword()">Reset Password</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── RECOVERY KEY MODAL (shown on first setup) ── -->
+<div class="modal-overlay hidden" id="recoveryModal">
+  <div class="modal">
+    <h2>Save Your Recovery Key</h2>
+    <p>Your password has been set. Copy the recovery key below and store it somewhere safe — you'll need it if you ever forget your password. <strong>This is the only time it will be shown.</strong></p>
+    <div class="recovery-key-box" id="recoveryKeyDisplay"></div>
+    <p class="modal-hint">Click the key to select it, then copy it.</p>
+    <div class="modal-actions">
+      <button class="action-btn" onclick="copyRecoveryKey()">Copy Key</button>
+      <button class="action-btn primary" onclick="closeRecoveryModal()">I've saved it</button>
+    </div>
+  </div>
+</div>
+
+<header>
+  <h1>Portfolio Memo Generator</h1>
+  <span>Weekly VP Briefing</span>
+  <div style="margin-left:auto;display:flex;gap:8px;align-items:center">
+    <button class="api-key-indicator" onclick="openPwModal()" id="pwSettingsBtn" title="Change password">
+      <span style="font-size:0.85rem">🔑</span>
+      <span>Password</span>
+    </button>
+    <button class="api-key-indicator" onclick="openApiModal()" id="apiIndicator">
+      <span class="dot" id="apiDot"></span>
+      <span id="apiLabel">API Key Required</span>
+    </button>
+  </div>
+</header>
+
+<!-- API Key Modal -->
+<div class="modal-overlay" id="apiModal">
+  <div class="modal">
+    <h2>Connect Your Groq API Key</h2>
+    <p>This app uses Groq's free API to generate memos. Enter your Groq API key below — it's saved locally in your browser and never sent anywhere except directly to Groq.<br><br>
+    Don't have a key? <a href="https://console.groq.com/" target="_blank">Get a free one at console.groq.com →</a></p>
+    <input type="password" id="apiKeyInput" placeholder="gsk_...">
+    <p class="modal-hint">Your key is stored only in this browser's localStorage and is never shared.</p>
+    <div class="modal-actions">
+      <button class="action-btn" onclick="closeApiModal()">Cancel</button>
+      <button class="action-btn primary" onclick="saveApiKey()">Save Key</button>
+    </div>
+  </div>
+</div>
+
+<div class="app">
+
+  <!-- ── LEFT: FORM ── -->
+  <div class="form-panel">
+
+    <!-- Meta -->
+    <p class="section-label">Memo Details</p>
+    <div class="meta-row">
+      <div class="field-row">
+        <label>Your Name</label>
+        <input type="text" id="senderName" placeholder="Jane Smith">
+      </div>
+      <div class="field-row">
+        <label>VP Name</label>
+        <input type="text" id="vpName" placeholder="Alex Johnson">
+      </div>
+      <div class="field-row">
+        <label>Week of</label>
+        <input type="date" id="weekDate">
+      </div>
+      <div class="field-row">
+        <label>Department / Team</label>
+        <input type="text" id="department" placeholder="Engineering">
+      </div>
+    </div>
+
+    <!-- Projects -->
+    <p class="section-label">Projects</p>
+    <div class="projects-container" id="projectsContainer"></div>
+    <button class="add-project-btn" onclick="addProject()">+ Add Another Project</button>
+
+    <br>
+
+    <!-- Additional notes -->
+    <p class="section-label" style="margin-top:24px">Additional Context <span style="font-family:'DM Sans';font-size:0.75rem;color:var(--muted);font-weight:300">(optional)</span></p>
+    <div class="field-row">
+      <label>Any other notes for the VP</label>
+      <textarea id="additionalNotes" placeholder="Upcoming team changes, cross-team dependencies, asks from leadership..."></textarea>
+    </div>
+
+    <div style="display:flex;gap:10px;margin-top:8px">
+      <button class="generate-btn" id="generateBtn" onclick="generateMemo()" style="margin-top:0">Generate Memo</button>
+      <button class="action-btn" onclick="clearDraft()" style="white-space:nowrap;flex-shrink:0">Clear Draft</button>
+    </div>
+  </div>
+
+  <!-- ── RIGHT: OUTPUT ── -->
+  <div class="output-panel">
+
+    <!-- Tab nav -->
+    <div class="tab-nav">
+      <button class="tab-btn active" onclick="switchTab('preview')" id="tab-preview">Preview</button>
+      <button class="tab-btn" onclick="switchTab('history')" id="tab-history">History</button>
+    </div>
+
+    <!-- Preview tab -->
+    <div class="tab-panel active" id="panel-preview">
+      <div class="output-toolbar">
+        <span class="draft-saved" id="draftSaved">Draft saved</span>
+        <div class="toolbar-actions">
+          <button class="action-btn" onclick="copyEmail()" id="copyBtn" style="display:none">Copy Email</button>
+          <button class="action-btn" onclick="archiveMemo()" id="archiveBtn" style="display:none">Archive</button>
+          <button class="action-btn primary" onclick="openEmail()" id="emailBtn" style="display:none">Open in Mail ↗</button>
+        </div>
+      </div>
+      <div class="memo-preview" id="memoPreview">
+        <div class="placeholder">
+          <div class="placeholder-icon">📋</div>
+          <p>Fill in your project details and click <strong>Generate Memo</strong> to create your weekly briefing.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- History tab -->
+    <div class="tab-panel" id="panel-history">
+      <div id="historyList" class="history-list"></div>
+    </div>
+
+  </div>
+
+</div>
+
+<div class="toast" id="toast">✓ Copied to clipboard</div>
+
+<script>
+// ── State ──
+let projectCount = 0;
+let generatedEmailBody = '';
+let generatedSubject = '';
+
+// ── Set default date to this week's Monday ──
+(function setDefaultDate() {
+  const today = new Date();
+  const day = today.getDay();
+  const diff = today.getDate() - day + (day === 0 ? -6 : 1);
+  const monday = new Date(today.setDate(diff));
+  document.getElementById('weekDate').value = monday.toISOString().split('T')[0];
+})();
+
+// ── Tab switching ──
+function switchTab(name) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  document.getElementById('panel-' + name).classList.add('active');
+  if (name === 'history') renderHistory();
+}
+
+// ── Draft auto-save ──
+const DRAFT_KEY = 'memo-draft';
+let draftSaveTimer = null;
+
+function saveDraft() {
+  const cards = document.querySelectorAll('.project-card');
+  const projects = [];
+  cards.forEach(card => {
+    const id = card.id.replace('project-', '');
+    projects.push({
+      dept: document.getElementById(`pdept-${id}`)?.value || 'General',
+      name: document.getElementById(`pname-${id}`)?.value || '',
+      status: document.getElementById(`pstatus-${id}`)?.value || 'On Track',
+      deadline: document.getElementById(`pdeadline-${id}`)?.value || '',
+      description: document.getElementById(`pdesc-${id}`)?.value || '',
+    });
+  });
+  const draft = {
+    weekDate: document.getElementById('weekDate').value,
+    notes: document.getElementById('additionalNotes').value,
+    projects,
+    savedAt: Date.now()
+  };
+  localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+  // Flash "Draft saved"
+  const el = document.getElementById('draftSaved');
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 2000);
+}
+
+function scheduleDraftSave() {
+  clearTimeout(draftSaveTimer);
+  draftSaveTimer = setTimeout(saveDraft, 800);
+}
+
+function restoreDraft() {
+  const raw = localStorage.getItem(DRAFT_KEY);
+  if (!raw) return false;
+  try {
+    const draft = JSON.parse(raw);
+    if (draft.weekDate) document.getElementById('weekDate').value = draft.weekDate;
+    if (draft.notes) document.getElementById('additionalNotes').value = draft.notes;
+    // Clear existing cards and restore saved ones
+    document.getElementById('projectsContainer').innerHTML = '';
+    projectCount = 0;
+    if (draft.projects && draft.projects.length > 0) {
+      draft.projects.forEach(p => {
+        addProject();
+        const id = projectCount;
+        if (document.getElementById(`pdept-${id}`)) document.getElementById(`pdept-${id}`).value = p.dept || 'General';
+        if (document.getElementById(`pname-${id}`)) document.getElementById(`pname-${id}`).value = p.name || '';
+        // Handle parking lot status lock
+        if (p.dept === 'Parking Lot') {
+          const statusEl = document.getElementById(`pstatus-${id}`);
+          statusEl.innerHTML = `<option value="Parking Lot">🟠 Parking Lot</option>`;
+          statusEl.disabled = true;
+        } else if (document.getElementById(`pstatus-${id}`)) {
+          document.getElementById(`pstatus-${id}`).value = p.status || 'On Track';
+        }
+        if (document.getElementById(`pdeadline-${id}`)) document.getElementById(`pdeadline-${id}`).value = p.deadline || '';
+        if (document.getElementById(`pdesc-${id}`)) document.getElementById(`pdesc-${id}`).value = p.description || '';
+        // Update card label
+        const n = p.name.trim();
+        const d = p.dept;
+        const labelEl = document.getElementById(`pcard-label-${id}`);
+        if (labelEl) labelEl.textContent = n ? `${d} — ${n}` : d;
+      });
+    } else {
+      addProject();
+    }
+    return true;
+  } catch(e) { return false; }
+}
+
+function clearDraft() {
+  if (!confirm('Clear all project entries and start fresh?')) return;
+  localStorage.removeItem(DRAFT_KEY);
+  document.getElementById('projectsContainer').innerHTML = '';
+  projectCount = 0;
+  document.getElementById('additionalNotes').value = '';
+  addProject();
+  // Reset week date to current Monday
+  const today = new Date();
+  const day = today.getDay();
+  const diff = today.getDate() - day + (day === 0 ? -6 : 1);
+  const monday = new Date(today.setDate(diff));
+  document.getElementById('weekDate').value = monday.toISOString().split('T')[0];
+  // Hide memo actions
+  document.getElementById('copyBtn').style.display = 'none';
+  document.getElementById('archiveBtn').style.display = 'none';
+  document.getElementById('emailBtn').style.display = 'none';
+  document.getElementById('memoPreview').innerHTML = `<div class="placeholder"><div class="placeholder-icon">📋</div><p>Fill in your project details and click <strong>Generate Memo</strong> to create your weekly briefing.</p></div>`;
+}
+
+function attachDraftListeners() {
+  document.getElementById('weekDate').addEventListener('change', scheduleDraftSave);
+  document.getElementById('additionalNotes').addEventListener('input', scheduleDraftSave);
+  // Delegate for dynamically added project fields
+  document.getElementById('projectsContainer').addEventListener('input', scheduleDraftSave);
+  document.getElementById('projectsContainer').addEventListener('change', scheduleDraftSave);
+}
+
+// ── Archive & History ──
+const HISTORY_KEY = 'memo-history';
+
+function getHistory() {
+  try { return JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]'); } catch(e) { return []; }
+}
+
+function saveHistory(history) {
+  localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+}
+
+function archiveMemo() {
+  if (!generatedEmailBody) return;
+  const history = getHistory();
+  const entry = {
+    id: Date.now(),
+    weekRange: generatedEmailBody.match(/Week:\s*(.+)/)?.[1] || generatedSubject,
+    subject: generatedSubject,
+    emailBody: generatedEmailBody,
+    memoHtml: document.getElementById('memoPreview').innerHTML,
+    archivedAt: new Date().toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' })
+  };
+  history.unshift(entry);
+  saveHistory(history);
+  showToast('✓ Memo archived');
+  switchTab('history');
+}
+
+function renderHistory() {
+  const history = getHistory();
+  const container = document.getElementById('historyList');
+  if (history.length === 0) {
+    container.innerHTML = `<div class="history-empty"><div class="placeholder-icon">🗂️</div><p>No archived memos yet.<br>Generate a memo and click <strong>Archive</strong> to save it here.</p></div>`;
+    return;
+  }
+  container.innerHTML = history.map(entry => `
+    <div class="history-entry" id="hentry-${entry.id}">
+      <div class="history-entry-header" onclick="toggleHistoryEntry(${entry.id})">
+        <div class="history-entry-meta">
+          <span class="history-entry-week">${entry.weekRange || entry.subject}</span>
+          <span class="history-entry-date">Archived ${entry.archivedAt}</span>
+        </div>
+        <div class="history-entry-actions">
+          <button class="action-btn" style="font-size:0.72rem;padding:5px 10px" onclick="event.stopPropagation();copyHistoryEntry(${entry.id})">Copy</button>
+          <button class="history-delete-btn" onclick="event.stopPropagation();deleteHistoryEntry(${entry.id})" title="Delete">✕</button>
+          <span class="history-chevron">▼</span>
+        </div>
+      </div>
+      <div class="history-entry-body">
+        ${entry.memoHtml}
+      </div>
+    </div>
+  `).join('');
+}
+
+function toggleHistoryEntry(id) {
+  const el = document.getElementById('hentry-' + id);
+  el.classList.toggle('open');
+}
+
+function copyHistoryEntry(id) {
+  const history = getHistory();
+  const entry = history.find(e => e.id === id);
+  if (entry) navigator.clipboard.writeText(entry.emailBody).then(() => showToast('✓ Email copied'));
+}
+
+function deleteHistoryEntry(id) {
+  if (!confirm('Delete this archived memo?')) return;
+  const history = getHistory().filter(e => e.id !== id);
+  saveHistory(history);
+  renderHistory();
+}
+
+
+function getApiKey() { return localStorage.getItem('groq-api-key') || ''; }
+
+function updateApiIndicator() {
+  const key = getApiKey();
+  const dot = document.getElementById('apiDot');
+  const label = document.getElementById('apiLabel');
+  if (key) {
+    dot.className = 'dot connected';
+    label.textContent = 'API Key Set';
+  } else {
+    dot.className = 'dot';
+    label.textContent = 'API Key Required';
+  }
+}
+
+function openApiModal() {
+  const key = getApiKey();
+  if (key) document.getElementById('apiKeyInput').value = key;
+  document.getElementById('apiModal').classList.remove('hidden');
+}
+
+function closeApiModal() {
+  document.getElementById('apiModal').classList.add('hidden');
+}
+
+function saveApiKey() {
+  const key = document.getElementById('apiKeyInput').value.trim();
+  if (!key) { alert('Please enter a valid API key.'); return; }
+  localStorage.setItem('groq-api-key', key);
+  updateApiIndicator();
+  closeApiModal();
+  showToast('✓ API key saved');
+}
+
+// Close modal on overlay click
+document.getElementById('apiModal').addEventListener('click', function(e) {
+  if (e.target === this) closeApiModal();
+});
+
+
+const MEMORY_FIELDS = ['senderName', 'vpName', 'department'];
+
+function loadMemory() {
+  for (const fieldId of MEMORY_FIELDS) {
+    const saved = localStorage.getItem('memo-meta:' + fieldId);
+    if (saved) document.getElementById(fieldId).value = saved;
+  }
+}
+
+function attachMemoryListeners() {
+  for (const fieldId of MEMORY_FIELDS) {
+    const el = document.getElementById(fieldId);
+    if (!el) continue;
+    el.addEventListener('input', function() {
+      localStorage.setItem('memo-meta:' + fieldId, el.value);
+    });
+  }
+}
+
+// ── Password Gate ──
+const SESSION_KEY = 'memo-session-auth';
+const PW_HASH_KEY = 'memo-pw-hash';
+const PW_RECOVERY_KEY = 'memo-pw-recovery';
+
+async function hashPassword(pw) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(pw));
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+function generateRecoveryKey() {
+  const arr = new Uint8Array(18);
+  crypto.getRandomValues(arr);
+  return Array.from(arr).map(b => b.toString(16).padStart(2, '0')).join('').toUpperCase().match(/.{6}/g).join('-');
+}
+
+async function submitPassword() {
+  const input = document.getElementById('passwordInput').value;
+  if (!input) return;
+  const hash = await hashPassword(input);
+  const storedHash = localStorage.getItem(PW_HASH_KEY);
+
+  if (!storedHash) {
+    // First time — set the password and show recovery key
+    const recoveryKey = generateRecoveryKey();
+    localStorage.setItem(PW_HASH_KEY, hash);
+    localStorage.setItem(PW_RECOVERY_KEY, recoveryKey);
+    document.getElementById('recoveryKeyDisplay').textContent = recoveryKey;
+    document.getElementById('recoveryModal').classList.remove('hidden');
+    // Grant access after they close the recovery modal
+    sessionStorage.setItem(SESSION_KEY, '1');
+  } else if (hash === storedHash) {
+    grantAccess();
+  } else {
+    document.getElementById('passwordError').classList.add('show');
+    document.getElementById('passwordInput').value = '';
+    document.getElementById('passwordInput').focus();
+  }
+}
+
+function copyRecoveryKey() {
+  const key = document.getElementById('recoveryKeyDisplay').textContent;
+  navigator.clipboard.writeText(key).then(() => showToast('✓ Recovery key copied'));
+}
+
+function closeRecoveryModal() {
+  document.getElementById('recoveryModal').classList.add('hidden');
+  document.getElementById('passwordGate').classList.add('hidden');
+  initApp();
+}
+
+function grantAccess() {
+  sessionStorage.setItem(SESSION_KEY, '1');
+  document.getElementById('passwordGate').classList.add('hidden');
+  initApp();
+}
+
+function checkAuth() {
+  if (sessionStorage.getItem(SESSION_KEY)) {
+    document.getElementById('passwordGate').classList.add('hidden');
+    return true;
+  }
+  document.getElementById('passwordGate').classList.remove('hidden');
+  setTimeout(() => document.getElementById('passwordInput').focus(), 100);
+  return false;
+}
+
+// ── Change Password ──
+function openPwModal() {
+  document.getElementById('pwModal-change').style.display = '';
+  document.getElementById('pwModal-recovery').style.display = 'none';
+  document.getElementById('pwCurrentInput').value = '';
+  document.getElementById('pwNewInput').value = '';
+  document.getElementById('pwConfirmInput').value = '';
+  document.getElementById('pwChangeError').style.display = 'none';
+  document.getElementById('pwModal').classList.remove('hidden');
+}
+
+function closePwModal() {
+  document.getElementById('pwModal').classList.add('hidden');
+}
+
+async function changePassword() {
+  const current = document.getElementById('pwCurrentInput').value;
+  const next = document.getElementById('pwNewInput').value;
+  const confirm = document.getElementById('pwConfirmInput').value;
+  const errEl = document.getElementById('pwChangeError');
+
+  if (!current || !next || !confirm) { showPwError(errEl, 'All fields are required.'); return; }
+  if (next !== confirm) { showPwError(errEl, 'New passwords do not match.'); return; }
+  if (next.length < 6) { showPwError(errEl, 'Password must be at least 6 characters.'); return; }
+
+  const currentHash = await hashPassword(current);
+  const storedHash = localStorage.getItem(PW_HASH_KEY);
+  if (currentHash !== storedHash) { showPwError(errEl, 'Current password is incorrect.'); return; }
+
+  const newHash = await hashPassword(next);
+  const newRecovery = generateRecoveryKey();
+  localStorage.setItem(PW_HASH_KEY, newHash);
+  localStorage.setItem(PW_RECOVERY_KEY, newRecovery);
+  closePwModal();
+  // Show new recovery key
+  document.getElementById('recoveryKeyDisplay').textContent = newRecovery;
+  document.getElementById('recoveryModal').classList.remove('hidden');
+}
+
+// ── Recovery ──
+function showRecovery() {
+  document.getElementById('pwModal-change').style.display = 'none';
+  document.getElementById('pwModal-recovery').style.display = '';
+  document.getElementById('pwRecoveryInput').value = '';
+  document.getElementById('pwRecoveryNew').value = '';
+  document.getElementById('pwRecoveryError').style.display = 'none';
+  document.getElementById('pwModal').classList.remove('hidden');
+}
+
+async function recoverPassword() {
+  const inputKey = document.getElementById('pwRecoveryInput').value.trim().toUpperCase();
+  const newPw = document.getElementById('pwRecoveryNew').value;
+  const errEl = document.getElementById('pwRecoveryError');
+  const storedKey = localStorage.getItem(PW_RECOVERY_KEY);
+
+  if (!inputKey || !newPw) { showPwError(errEl, 'All fields are required.'); return; }
+  if (newPw.length < 6) { showPwError(errEl, 'Password must be at least 6 characters.'); return; }
+  if (inputKey !== storedKey) { showPwError(errEl, 'Recovery key is incorrect.'); return; }
+
+  const newHash = await hashPassword(newPw);
+  const newRecovery = generateRecoveryKey();
+  localStorage.setItem(PW_HASH_KEY, newHash);
+  localStorage.setItem(PW_RECOVERY_KEY, newRecovery);
+  closePwModal();
+  document.getElementById('passwordGate').classList.add('hidden');
+  document.getElementById('recoveryKeyDisplay').textContent = newRecovery;
+  document.getElementById('recoveryModal').classList.remove('hidden');
+  if (!sessionStorage.getItem(SESSION_KEY)) {
+    sessionStorage.setItem(SESSION_KEY, '1');
+    initApp();
+  }
+}
+
+function showPwError(el, msg) {
+  el.textContent = msg;
+  el.style.display = 'block';
+}
+
+// Close modals on overlay click
+document.getElementById('pwModal').addEventListener('click', function(e) { if (e.target === this) closePwModal(); });
+
+// ── App Init (separated so password gate can trigger it) ──
+function initApp() {
+  loadMemory();
+  attachMemoryListeners();
+  updateApiIndicator();
+  if (!getApiKey()) openApiModal();
+  const hadDraft = restoreDraft();
+  if (!hadDraft) addProject();
+  attachDraftListeners();
+}
+
+// ── Init ──
+const isAuthed = checkAuth();
+if (isAuthed) initApp();
+
+function addProject() {
+  projectCount++;
+  const id = projectCount;
+  const container = document.getElementById('projectsContainer');
+  const card = document.createElement('div');
+  card.className = 'project-card';
+  card.id = `project-${id}`;
+  card.innerHTML = `
+    <div class="project-card-header">
+      <span id="pcard-label-${id}">New Project</span>
+      <button class="remove-btn" onclick="removeProject(${id})" title="Remove">✕</button>
+    </div>
+    <div class="field-row">
+      <label>Department / Section</label>
+      <select id="pdept-${id}">
+        <option value="General">General</option>
+        <option value="Awards">Awards</option>
+        <option value="Branding">Branding</option>
+        <option value="Development">Development</option>
+        <option value="Events">Events</option>
+        <option value="Platform">Platform</option>
+        <option value="Human Resources">Human Resources</option>
+        <option value="Institute">Institute</option>
+        <option value="JBF Spaces">JBF Spaces</option>
+        <option value="Simplissimus">Simplissimus</option>
+        <option value="Partnership">Partnership</option>
+        <option value="SLT">SLT</option>
+        <option value="Web Requests">Web Requests</option>
+        <option value="Parking Lot">Parking Lot</option>
+        <option value="Other">Other</option>
+      </select>
+    </div>
+    <div class="field-row">
+      <label>Project Name</label>
+      <input type="text" id="pname-${id}" placeholder="e.g. Customer Portal Redesign">
+    </div>
+    <div class="field-row-2">
+      <div>
+        <label>Status</label>
+        <select id="pstatus-${id}" class="status-select">
+          <option value="On Track">🟢 On Track</option>
+          <option value="At Risk">🟡 At Risk</option>
+          <option value="Delayed">🔴 Delayed</option>
+          <option value="Completed">✅ Completed</option>
+        </select>
+      </div>
+      <div>
+        <label>Next Deadline</label>
+        <input type="date" id="pdeadline-${id}">
+      </div>
+    </div>
+    <div class="field-row">
+      <label>Description</label>
+      <textarea id="pdesc-${id}" style="min-height:100px" placeholder="Write freely — what happened this week, any blockers, what's coming next. The app will polish it for you."></textarea>
+    </div>
+  `;
+  container.appendChild(card);
+
+  // Live-update the card label as user fills in dept/name
+  const nameEl = document.getElementById(`pname-${id}`);
+  const deptEl = document.getElementById(`pdept-${id}`);
+  const statusEl = document.getElementById(`pstatus-${id}`);
+
+  function getStatusEmoji(status) {
+    if (status === 'On Track') return '🟢';
+    if (status === 'At Risk') return '🟡';
+    if (status === 'Delayed') return '🔴';
+    if (status === 'Completed') return '✅';
+    if (status === 'Parking Lot') return '🟠';
+    return '';
+  }
+
+  function updateCardLabel() {
+    const n = nameEl.value.trim();
+    const d = deptEl.value;
+    document.getElementById(`pcard-label-${id}`).textContent = n ? `${d} — ${n}` : d;
+  }
+
+  function handleDeptChange() {
+    const isParkingLot = deptEl.value === 'Parking Lot';
+    if (isParkingLot) {
+      statusEl.innerHTML = `<option value="Parking Lot">🟠 Parking Lot</option>`;
+      statusEl.disabled = true;
+    } else {
+      statusEl.disabled = false;
+      // Restore normal options if coming back from Parking Lot
+      if (statusEl.value === 'Parking Lot') {
+        statusEl.innerHTML = `
+          <option value="On Track">🟢 On Track</option>
+          <option value="At Risk">🟡 At Risk</option>
+          <option value="Delayed">🔴 Delayed</option>
+          <option value="Completed">✅ Completed</option>`;
+      }
+    }
+    updateCardLabel();
+  }
+
+  nameEl.addEventListener('input', updateCardLabel);
+  deptEl.addEventListener('change', handleDeptChange);
+}
+
+function removeProject(id) {
+  const card = document.getElementById(`project-${id}`);
+  if (card) card.remove();
+}
+
+function getStatusEmoji(status) {
+  if (status === 'On Track') return '🟢';
+  if (status === 'At Risk') return '🟡';
+  if (status === 'Delayed') return '🔴';
+  if (status === 'Completed') return '✅';
+  if (status === 'Parking Lot') return '🟠';
+  return '';
+}
+
+function getProjects() {
+  const cards = document.querySelectorAll('.project-card');
+  const projects = [];
+  cards.forEach(card => {
+    const id = card.id.replace('project-', '');
+    const name = document.getElementById(`pname-${id}`)?.value.trim();
+    if (!name) return;
+    const status = document.getElementById(`pstatus-${id}`)?.value;
+    projects.push({
+      dept: document.getElementById(`pdept-${id}`)?.value,
+      name,
+      status,
+      emoji: getStatusEmoji(status),
+      deadline: document.getElementById(`pdeadline-${id}`)?.value,
+      description: document.getElementById(`pdesc-${id}`)?.value.trim(),
+    });
+  });
+  return projects;
+}
+
+async function generateMemo() {
+  const sender = document.getElementById('senderName').value.trim() || 'Portfolio Manager';
+  const vp = document.getElementById('vpName').value.trim() || 'VP';
+  const dept = document.getElementById('department').value.trim() || 'Team';
+  const weekDate = document.getElementById('weekDate').value;
+  const notes = document.getElementById('additionalNotes').value.trim();
+  const projects = getProjects();
+
+  if (projects.length === 0) {
+    alert('Please add at least one project with a name.');
+    return;
+  }
+
+  const btn = document.getElementById('generateBtn');
+  btn.disabled = true;
+  btn.textContent = 'Generating…';
+
+  // Show loading
+  document.getElementById('memoPreview').innerHTML = `
+    <div class="loading">
+      <div class="spinner"></div>
+      <span style="font-size:0.85rem">Drafting your memo…</span>
+    </div>`;
+  document.getElementById('copyBtn').style.display = 'none';
+  document.getElementById('archiveBtn').style.display = 'none';
+  document.getElementById('emailBtn').style.display = 'none';
+
+  // Format week date as Mon–Fri range
+  const weekFormatted = weekDate
+    ? new Date(weekDate + 'T12:00:00').toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
+    : 'this week';
+
+  const weekRange = (() => {
+    if (!weekDate) return weekFormatted;
+    const monday = new Date(weekDate + 'T12:00:00');
+    const friday = new Date(monday);
+    friday.setDate(monday.getDate() + 4);
+    const opts = { month: 'long', day: 'numeric' };
+    const monStr = monday.toLocaleDateString('en-US', opts);
+    const friStr = friday.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+    return `${monStr} – ${friStr}`;
+  })();
+
+  // Group projects by department
+  const DEPT_ORDER = ['General','Awards','Branding','Development','Events','Platform','Human Resources','Institute','JBF Spaces','Simplissimus','Partnership','SLT','Web Requests','Parking Lot','Other'];
+  const grouped = {};
+  projects.forEach(p => {
+    if (!grouped[p.dept]) grouped[p.dept] = [];
+    grouped[p.dept].push(p);
+  });
+
+  const projectDetails = DEPT_ORDER
+    .filter(d => grouped[d])
+    .map(d => {
+      const entries = grouped[d].map(p => `
+  Project: ${p.name} ${p.emoji}
+  - Status: ${p.status}
+  - Next Deadline: ${p.deadline || 'Not specified'}
+  - Description (raw notes): ${p.description || 'Not provided'}`).join('\n');
+      return `SECTION: ${d}\n${entries}`;
+    }).join('\n\n');
+
+  const prompt = `You are a professional business writer. Write a concise, professional weekly project portfolio memo from ${sender} to ${vp} (VP) for the week of ${weekRange}. The team/department is: ${dept}.
+
+Here are the projects, grouped by department/section:
+
+${projectDetails}
+
+${notes ? `Additional context from the sender: ${notes}` : ''}
+
+Instructions:
+- Tone: Professional but concise. Executive-ready.
+- Format as an email body (no subject line in the body).
+- Open with a brief 1-2 sentence high-level executive summary that synthesizes the most significant elements across all projects — what's going well, what needs attention, and the overall state of the portfolio this week.
+- After the summary, organize the body into sections matching the department/section groupings provided. Use the department name as a section header (e.g. "Awards", "Branding", etc.). Only include sections that have projects.
+- Within each section, use the project name as the sub-header, with the status emoji at the end (e.g. "Project Name 🟢"). Do not use "Project 1," "Project 2," etc. Do not add any other text to the sub-header.
+- For each project entry, write a clean, polished paragraph synthesizing the raw description notes into professional language. Include status, progress, any risks or blockers, and next deadline if relevant. Strictly no more than 4 sentences per project — prioritize the most important information.
+- End with a brief "Next Steps / Asks" section only if there are blockers or action items that require the VP's attention. Otherwise close with a single forward-looking sentence.
+- Do not use jargon or filler. Be direct and crisp.
+- Do not include a subject line or "From/To/Date" headers — just the email body.`;
+
+  const apiKey = getApiKey();
+  if (!apiKey) {
+    openApiModal();
+    btn.disabled = false;
+    btn.textContent = 'Generate Memo';
+    return;
+  }
+
+  try {
+    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + apiKey
+      },
+      body: JSON.stringify({
+        model: 'llama-3.3-70b-versatile',
+        max_tokens: 1000,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+
+    const data = await response.json();
+    const memoText = data.choices?.[0]?.message?.content || '';
+
+    if (!memoText) throw new Error('Empty response');
+
+    // Subject line
+    generatedSubject = `Weekly Portfolio Update — ${dept} — ${weekRange}`;
+    generatedEmailBody = `To: ${vp}\nFrom: ${sender}\nDate: ${weekRange}\nSubject: ${generatedSubject}\n\n${memoText}`;
+
+    renderMemo(memoText, sender, vp, weekRange, dept);
+
+  } catch (err) {
+    const msg = err?.message || 'Unknown error';
+    document.getElementById('memoPreview').innerHTML = `
+      <div class="placeholder">
+        <div class="placeholder-icon">⚠️</div>
+        <p>Something went wrong: ${msg}</p>
+        <p style="font-size:0.8rem;margin-top:8px">Check your API key or try again.</p>
+      </div>`;
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Generate Memo';
+  }
+}
+
+function renderMemo(body, sender, vp, date, dept) {
+  const preview = document.getElementById('memoPreview');
+
+  // Convert markdown to HTML with two-level headers
+  const htmlBody = body
+    .replace(/^## (.+)$/gm, '<h3 class="dept-header">$1</h3>')
+    .replace(/^### (.+)$/gm, '<h4 class="project-header">$1</h4>')
+    .replace(/^# (.+)$/gm, '<h3 class="dept-header">$1</h3>')
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\n\n/g, '</p><p>')
+    .replace(/\n/g, '<br>');
+
+  preview.innerHTML = `
+    <div class="memo-rendered">
+      <div class="memo-header">
+        <div class="memo-title">Weekly Portfolio Update</div>
+        <div class="memo-meta">
+          <span class="meta-key">To:</span><span>${vp}</span>
+          <span class="meta-key">From:</span><span>${sender}</span>
+          <span class="meta-key">Week:</span><span>${date}</span>
+          <span class="meta-key">Re:</span><span>${dept} — Weekly Portfolio Briefing</span>
+        </div>
+      </div>
+      <div class="memo-body"><p>${htmlBody}</p></div>
+    </div>`;
+
+    document.getElementById('copyBtn').style.display = '';
+    document.getElementById('archiveBtn').style.display = '';
+    document.getElementById('emailBtn').style.display = '';
+}
+
+function copyEmail() {
+  navigator.clipboard.writeText(generatedEmailBody).then(() => {
+    showToast('✓ Email copied to clipboard');
+  });
+}
+
+function openEmail() {
+  const subject = encodeURIComponent(generatedSubject);
+  const body = encodeURIComponent(generatedEmailBody);
+  const vp = document.getElementById('vpName').value.trim();
+  window.location.href = `mailto:${encodeURIComponent(vp)}?subject=${subject}&body=${body}`;
+}
+
+function showToast(msg) {
+  const toast = document.getElementById('toast');
+  toast.textContent = msg;
+  toast.classList.add('show');
+  setTimeout(() => toast.classList.remove('show'), 3000);
+}
+</script>
+</body>
+</html>
