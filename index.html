@@ -1158,7 +1158,6 @@ function initApp() {
   loadMemory();
   attachMemoryListeners();
   updateApiIndicator();
-  if (!getApiKey()) openApiModal();
   const hadDraft = restoreDraft();
   if (!hadDraft) addProject();
   attachDraftListeners();
