@@ -1434,7 +1434,7 @@ ${notes ? `Additional context from the sender: ${notes}` : ''}
 Instructions:
 - Tone: Professional but concise. Executive-ready.
 - Format as an email body (no subject line in the body).
-- Open with a brief 1-2 sentence high-level executive summary that synthesizes the most significant elements across all entries — what's going well, what needs attention, and the overall state of the portfolio this week.
+- Open with a 2-3 sentence executive summary. Act as an editor, not a reporter — do not summarize everything. Identify only the 2-3 most significant items across the entire portfolio: what is most at risk or blocked, what has just been completed or hit a major milestone, and/or what requires the VP's decision or attention this week. Every sentence must reference a specific project or issue by name. Do not write generic observations about the portfolio.
 - After the summary, organize the body into sections matching the department/section groupings provided. Use the department name as a section header (e.g. "Awards", "Branding", etc.). Only include sections that have entries.
 - Within each section, generate an appropriate, context-sensitive sub-header title for each entry based on its description. The title should reflect the nature of the entry — it could be a project name, an incident, a roadblock, a general update, a decision, etc. Whatever best captures what the entry is actually about. Append the status emoji at the end of the title (e.g. "Website Redesign 🟢" or "Vendor Delay 🔴"). Do not label entries as "Entry 1", "Entry 2", etc.
 - For each entry, write a clean, polished paragraph synthesizing the raw description notes into professional language. Include status, progress, any risks or blockers, and next deadline if relevant. Strictly no more than 4 sentences per entry — prioritize the most important information.
@@ -1459,7 +1459,7 @@ Instructions:
       },
       body: JSON.stringify({
         model: 'llama-3.3-70b-versatile',
-        max_tokens: 1000,
+        max_tokens: 1400,
         temperature: 0,
         messages: [{ role: 'user', content: prompt }]
       })
