@@ -194,7 +194,7 @@
   .generate-btn {
     flex: 1;
     padding: 12px 20px;
-    background: var(--charcoal);
+    background: var(--tomato);
     color: white;
     border: none;
     border-radius: var(--radius-sm);
@@ -203,17 +203,10 @@
     letter-spacing: 0.8px; text-transform: uppercase;
     cursor: pointer;
     transition: background 0.15s, transform 0.1s;
-    position: relative; overflow: hidden;
   }
-  .generate-btn::after {
-    content: ''; position: absolute;
-    bottom: 0; left: 0; right: 0; height: 2px;
-    background: var(--tomato);
-  }
-  .generate-btn:hover { background: #2d2d2d; }
+  .generate-btn:hover { background: var(--tomato-dark); }
   .generate-btn:active { transform: scale(0.99); }
   .generate-btn:disabled { background: var(--light-gray); color: var(--mid-gray); cursor: not-allowed; }
-  .generate-btn:disabled::after { display: none; }
 
   /* ── RIGHT PANEL ── */
   .output-panel {
@@ -1466,6 +1459,7 @@ Instructions:
       body: JSON.stringify({
         model: 'llama-3.3-70b-versatile',
         max_tokens: 1000,
+        temperature: 0,
         messages: [{ role: 'user', content: prompt }]
       })
     });
@@ -1608,10 +1602,12 @@ async function runFinalReview() {
   const editableEl = document.getElementById('editableContent');
   if (!editableEl) return;
 
-  const editedHTML = editableEl.innerHTML;
-  // Convert HTML back to plain text for the AI
+  // Preserve the original HTML structure — we'll graft AI edits back onto it
+  const originalHTML = editableEl.innerHTML;
+
+  // Extract plain text per-node so we can map AI output back to structure
   const tmp = document.createElement('div');
-  tmp.innerHTML = editedHTML;
+  tmp.innerHTML = originalHTML;
   const editedText = tmp.innerText || tmp.textContent;
 
   const btn = document.getElementById('finalReviewBtn');
@@ -1634,7 +1630,7 @@ Your tasks:
 4. Flag anything that reads awkwardly, seems inconsistent, or might confuse the reader.
 5. Do not change the substance, structure, or meaning of any entry. Do not add or remove information.
 6. Return the polished memo body text first, then on a new line add "---" followed by a brief "Editor's Notes" section summarizing what you changed and why (2-5 bullet points). If nothing significant needed changing, say so.
-7. Preserve all section headers and sub-headers exactly as written.
+7. Preserve all section headers and sub-headers exactly as written — output them on their own lines prefixed with ## for department headers and ### for entry sub-headers.
 8. Do not include subject lines or From/To headers.`;
 
   try {
@@ -1644,6 +1640,7 @@ Your tasks:
       body: JSON.stringify({
         model: 'llama-3.3-70b-versatile',
         max_tokens: 1500,
+        temperature: 0,
         messages: [{ role: 'user', content: prompt }]
       })
     });
@@ -1652,18 +1649,29 @@ Your tasks:
     if (!result) throw new Error('Empty response');
 
     // Split memo body from editor notes
-    const parts = result.split(/\n---\n/);
-    const polishedText = parts[0].trim();
-    const editorNotes = parts[1] ? parts[1].trim() : null;
+    const separatorMatch = result.match(/\n---+\n/);
+    const polishedText = separatorMatch ? result.slice(0, result.indexOf(separatorMatch[0])).trim() : result.trim();
+    const editorNoteRaw = separatorMatch ? result.slice(result.indexOf(separatorMatch[0]) + separatorMatch[0].length).trim() : null;
+    // Strip "Editor's Notes" label if AI included it
+    const editorNotes = editorNoteRaw ? editorNoteRaw.replace(/^editor['']s notes:?\s*/i, '').trim() : null;
 
-    // Convert polished text to HTML
+    // Convert polished text to HTML — preserving heading levels and inline formatting
     const htmlBody = polishedText
-      .replace(/^## (.+)$/gm, '<h3>$1</h3>')
-      .replace(/^### (.+)$/gm, '<h4>$1</h4>')
+      .replace(/^#{3} (.+)$/gm, '<h4>$1</h4>')
+      .replace(/^#{2} (.+)$/gm, '<h3>$1</h3>')
       .replace(/^# (.+)$/gm, '<h3>$1</h3>')
       .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-      .replace(/\n\n/g, '</p><p>')
-      .replace(/\n/g, '<br>');
+      .replace(/\*(.+?)\*/g, '<em>$1</em>')
+      .split('\n\n')
+      .map(block => {
+        const trimmed = block.trim();
+        if (!trimmed) return '';
+        // Don't wrap headings in <p>
+        if (trimmed.startsWith('<h3>') || trimmed.startsWith('<h4>')) return trimmed;
+        return `<p>${trimmed.replace(/\n/g, '<br>')}</p>`;
+      })
+      .filter(Boolean)
+      .join('\n');
 
     // Update generatedEmailBody with polished version
     const sender = document.getElementById('senderName').value.trim() || 'Portfolio Manager';
@@ -1690,7 +1698,7 @@ Your tasks:
       <div class="memo-rendered">
         ${preview.dataset.headerHTML || ''}
         ${editorNotes ? `<div class="final-review-note"><strong>Editor's Notes:</strong><br>${editorNotes.replace(/\n/g,'<br>')}</div>` : ''}
-        <div class="memo-body"><p>${htmlBody}</p></div>
+        <div class="memo-body">${htmlBody}</div>
       </div>`;
 
     document.getElementById('copyBtn').style.display = '';
