@@ -1541,13 +1541,16 @@ function enterEditMode() {
   const currentHTML = preview.querySelector('.memo-rendered');
   if (!currentHTML) return;
 
-  // Extract just the body content for editing
   const bodyEl = currentHTML.querySelector('.memo-body');
   const headerEl = currentHTML.querySelector('.memo-header');
-  const editableHTML = bodyEl ? bodyEl.innerHTML : currentHTML.innerHTML;
   const headerHTML = headerEl ? headerEl.outerHTML : '';
 
-  // Hide normal toolbar buttons, show edit-specific ones
+  // Snapshot the original body HTML before any browser mangling
+  const originalBodyHTML = bodyEl ? bodyEl.innerHTML : currentHTML.innerHTML;
+  preview.dataset.originalBodyHTML = originalBodyHTML;
+  preview.dataset.headerHTML = headerHTML;
+
+  // Hide normal toolbar buttons
   document.getElementById('editBtn').style.display = 'none';
   document.getElementById('copyBtn').style.display = 'none';
   document.getElementById('archiveBtn').style.display = 'none';
@@ -1567,11 +1570,9 @@ function enterEditMode() {
           <button class="action-btn primary" onclick="runFinalReview()" id="finalReviewBtn">Final Review ✦</button>
         </div>
       </div>
-      <div class="edit-content" id="editableContent" contenteditable="true">${editableHTML}</div>
+      <div class="edit-content" id="editableContent" contenteditable="true">${originalBodyHTML}</div>
     </div>`;
 
-  // Store header for reconstruction
-  preview.dataset.headerHTML = headerHTML;
   document.getElementById('editableContent').focus();
 }
 
@@ -1603,6 +1604,9 @@ async function runFinalReview() {
   const editableEl = document.getElementById('editableContent');
   if (!editableEl) return;
 
+  const preview = document.getElementById('memoPreview');
+  // Use the original pre-edit snapshot for structure, edited content for text changes
+  const originalBodyHTML = preview.dataset.originalBodyHTML || editableEl.innerHTML;
   const editedHTML = editableEl.innerHTML;
 
   const btn = document.getElementById('finalReviewBtn');
@@ -1612,28 +1616,31 @@ async function runFinalReview() {
   const apiKey = getApiKey();
   if (!apiKey) { openApiModal(); btn.disabled = false; btn.textContent = 'Final Review ✦'; return; }
 
-  const prompt = `You are a professional editor reviewing an internal executive memo written in HTML. Your job is to do a final polish pass on the text content only — do not restructure or reformat the HTML.
+  const prompt = `You are a professional editor reviewing an internal executive memo written in HTML. Polish the text only — do not touch the structure.
 
-Here is the memo in HTML:
+Here is the original memo HTML (use this as the structural template — preserve all tags from this):
+
+${originalBodyHTML}
+
+The author made these edits to the text (incorporate any text changes the author made):
 
 ${editedHTML}
 
 Your tasks:
-1. Fix grammar, punctuation, and spelling errors in the text content.
-2. Improve sentence clarity and flow — make it crisp and executive-ready.
-3. Ensure tone is consistent throughout — professional, direct, not overly formal.
-4. Do not change the substance or meaning of any entry. Do not add or remove information.
-5. Preserve ALL HTML tags exactly as they appear — <h3>, <h4>, <p>, <strong>, <em>, <br>, etc. Only edit the text between tags.
-6. Do not add, remove, or modify any HTML tags.
+1. Fix grammar, punctuation, and spelling errors.
+2. Improve sentence clarity and flow — crisp and executive-ready.
+3. Ensure consistent professional tone throughout.
+4. Incorporate any text edits the author made in the edited version.
+5. CRITICAL: Return HTML that uses the EXACT same tag structure as the original — every <h3>, <h4>, <p>, <strong>, <em>, <br> must be present and in the same positions. Only the text content inside tags may change.
 
-Return your response in exactly this format — two sections, nothing else:
+Return your response in exactly this structure:
 
 <polished_html>
-[the complete corrected HTML here, tags preserved exactly]
+[complete corrected HTML with original tag structure fully intact]
 </polished_html>
 
 <editor_notes>
-[2-5 bullet points summarizing what you changed and why. If nothing significant needed changing, say so in one sentence.]
+[2-5 bullet points on what changed. If nothing significant, say so in one sentence.]
 </editor_notes>`;
 
   try {
@@ -1651,16 +1658,32 @@ Return your response in exactly this format — two sections, nothing else:
     const result = data.choices?.[0]?.message?.content || '';
     if (!result) throw new Error('Empty response');
 
-    // Extract polished HTML
     const htmlMatch = result.match(/<polished_html>([\s\S]*?)<\/polished_html>/);
     const notesMatch = result.match(/<editor_notes>([\s\S]*?)<\/editor_notes>/);
-
     if (!htmlMatch) throw new Error('Could not parse response');
 
-    const polishedHTML = htmlMatch[1].trim();
+    let polishedHTML = htmlMatch[1].trim();
     const editorNotes = notesMatch ? notesMatch[1].trim() : null;
 
-    // Update generatedEmailBody with polished plain text version
+    // Safety net: if AI stripped h3/h4 tags, rebuild from original structure
+    if (!/<h[34]/.test(polishedHTML) && /<h[34]/.test(originalBodyHTML)) {
+      const origDiv = document.createElement('div');
+      origDiv.innerHTML = originalBodyHTML;
+      const aiDiv = document.createElement('div');
+      aiDiv.innerHTML = polishedHTML;
+      const aiParas = Array.from(aiDiv.querySelectorAll('p, div')).map(el => el.innerHTML.trim()).filter(Boolean);
+      let paraIdx = 0;
+      const rebuilt = document.createElement('div');
+      origDiv.childNodes.forEach(node => {
+        const clone = node.cloneNode(true);
+        if (node.nodeName === 'P' && paraIdx < aiParas.length) {
+          clone.innerHTML = aiParas[paraIdx++];
+        }
+        rebuilt.appendChild(clone);
+      });
+      polishedHTML = rebuilt.innerHTML;
+    }
+
     const tmp = document.createElement('div');
     tmp.innerHTML = polishedHTML;
     const polishedText = tmp.innerText || tmp.textContent;
@@ -1683,7 +1706,6 @@ Return your response in exactly this format — two sections, nothing else:
     generatedSubject = `Weekly Portfolio Update — ${dept} — ${weekRange}`;
     generatedEmailBody = `To: ${vp}\nFrom: ${sender}\nDate: ${weekRange}\nSubject: ${generatedSubject}\n\n${polishedText}`;
 
-    const preview = document.getElementById('memoPreview');
     preview.innerHTML = `
       <div class="memo-rendered">
         ${preview.dataset.headerHTML || ''}
