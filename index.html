@@ -849,6 +849,7 @@ function saveDraft() {
       deadline: document.getElementById(`pdeadline-${id}`)?.value || '',
       description: document.getElementById(`pdesc-${id}`)?.value || '',
       source: document.getElementById(`psource-${id}`)?.value || '',
+      link: document.getElementById(`plink-${id}`)?.value || '',
     });
   });
   const draft = {
@@ -895,6 +896,7 @@ function restoreDraft() {
         if (document.getElementById(`pdeadline-${id}`)) document.getElementById(`pdeadline-${id}`).value = p.deadline || '';
         if (document.getElementById(`pdesc-${id}`)) document.getElementById(`pdesc-${id}`).value = p.description || '';
         if (document.getElementById(`psource-${id}`)) document.getElementById(`psource-${id}`).value = p.source || '';
+        if (document.getElementById(`plink-${id}`)) document.getElementById(`plink-${id}`).value = p.link || '';
         // Update card label
         const labelEl = document.getElementById(`pcard-label-${id}`);
         if (labelEl) labelEl.textContent = p.dept || 'General';
@@ -1284,6 +1286,10 @@ function addProject() {
       <label>Source Material <span style="font-weight:400;text-transform:none;letter-spacing:0;color:#aaa;font-size:10px">(optional)</span></label>
       <textarea id="psource-${id}" style="min-height:90px" placeholder="Paste email chains, Monday.com threads, Slack messages, meeting notes, anything — the AI will figure out what's relevant."></textarea>
     </div>
+    <div class="field-row">
+      <label>Relevant Link <span style="font-weight:400;text-transform:none;letter-spacing:0;color:#aaa;font-size:10px">(optional — hyperlinked into entry title)</span></label>
+      <input type="url" id="plink-${id}" placeholder="https://…">
+    </div>
   `;
   container.appendChild(card);
 
@@ -1356,6 +1362,7 @@ function getProjects() {
       deadline: document.getElementById(`pdeadline-${id}`)?.value,
       description,
       source,
+      link: document.getElementById(`plink-${id}`)?.value.trim() || '',
     });
   });
   return projects;
@@ -1415,7 +1422,8 @@ async function generateMemo() {
     .filter(d => grouped[d])
     .map(d => {
       const entries = grouped[d].map((p, i) => {
-        let entry = `\n  Entry ${i+1}:\n  - Status: ${p.status} ${p.emoji}\n  - Next Deadline: ${p.deadline || 'Not specified'}`;
+        let entry = `\n  Entry ${i+1}:\n  - Status: ${p.status} ${p.emoji}`;
+        if (p.deadline) entry += `\n  - Next Deadline: ${p.deadline}`;
         if (p.description) entry += `\n  - Directing note: ${p.description}`;
         if (p.source) entry += `\n  - Source material (raw — extract what's relevant): ${p.source}`;
         return entry;
@@ -1437,7 +1445,7 @@ Instructions:
 - Open with a 2-3 sentence executive summary. Act as an editor, not a reporter — do not summarize everything. Identify only the 2-3 most significant items across the entire portfolio: what is most at risk or blocked, what has just been completed or hit a major milestone, and/or what requires the VP's decision or attention this week. Every sentence must reference a specific project or issue by name. Do not write generic observations about the portfolio.
 - After the summary, organize the body into sections matching the department/section groupings provided. Use the department name as a section header (e.g. "Awards", "Branding", etc.). Only include sections that have entries.
 - Within each section, generate an appropriate, context-sensitive sub-header title for each entry based on its description. The title should reflect the nature of the entry — it could be a project name, an incident, a roadblock, a general update, a decision, etc. Whatever best captures what the entry is actually about. Append the status emoji at the end of the title (e.g. "Website Redesign 🟢" or "Vendor Delay 🔴"). Do not label entries as "Entry 1", "Entry 2", etc.
-- For each entry, write a clean, polished paragraph synthesizing the raw description notes into professional language. Include status, progress, any risks or blockers, and next deadline if relevant. Strictly no more than 4 sentences per entry — prioritize the most important information.
+- For each entry, write a clean, polished paragraph synthesizing the raw description notes into professional language. Include status, progress, and any risks or blockers. Only mention a deadline if one was explicitly provided. Strictly no more than 4 sentences per entry — prioritize the most important information.
 - End with a brief "Next Steps / Asks" section only if there are blockers or action items that require the VP's attention. Otherwise close with a single forward-looking sentence.
 - Do not use jargon or filler. Be direct and crisp.
 - Do not include a subject line or "From/To/Date" headers — just the email body.`;
@@ -1474,7 +1482,12 @@ Instructions:
     generatedSubject = `Weekly Portfolio Update — ${dept} — ${weekRange}`;
     generatedEmailBody = `To: ${vp}\nFrom: ${sender}\nDate: ${weekRange}\nSubject: ${generatedSubject}\n\n${memoText}`;
 
-    renderMemo(memoText, sender, vp, weekRange, dept);
+    // Build ordered link list matching dept/entry order AI will generate
+    const orderedLinks = DEPT_ORDER
+      .filter(d => grouped[d])
+      .flatMap(d => grouped[d].map(p => p.link || ''));
+
+    renderMemo(memoText, sender, vp, weekRange, dept, orderedLinks);
 
   } catch (err) {
     const msg = err?.message || 'Unknown error';
@@ -1490,7 +1503,7 @@ Instructions:
   }
 }
 
-function renderMemo(body, sender, vp, date, dept) {
+function renderMemo(body, sender, vp, date, dept, orderedLinks) {
   const preview = document.getElementById('memoPreview');
 
   // Convert markdown to HTML with two-level headers
@@ -1516,16 +1529,70 @@ function renderMemo(body, sender, vp, date, dept) {
       <div class="memo-body"><p>${htmlBody}</p></div>
     </div>`;
 
-    document.getElementById('copyBtn').style.display = '';
-    document.getElementById('editBtn').style.display = '';
-    document.getElementById('archiveBtn').style.display = '';
-    document.getElementById('emailBtn').style.display = '';
+  // Inject hyperlinks into h4 titles in order
+  if (orderedLinks && orderedLinks.some(l => l)) {
+    const h4s = preview.querySelectorAll('h4.project-header');
+    h4s.forEach((h4, i) => {
+      const link = orderedLinks[i];
+      if (link) {
+        const titleText = h4.innerHTML;
+        h4.innerHTML = `<a href="${link}" target="_blank" rel="noopener" style="color:inherit;text-decoration:underline;text-decoration-color:rgba(0,0,0,0.25);text-underline-offset:2px;">${titleText}</a>`;
+      }
+    });
+  }
+
+  document.getElementById('copyBtn').style.display = '';
+  document.getElementById('editBtn').style.display = '';
+  document.getElementById('archiveBtn').style.display = '';
+  document.getElementById('emailBtn').style.display = '';
 }
 
 function copyEmail() {
-  navigator.clipboard.writeText(generatedEmailBody).then(() => {
-    showToast('✓ Email copied to clipboard');
-  });
+  // Build a clean HTML version for Outlook — inline styles for maximum compatibility
+  const preview = document.getElementById('memoPreview');
+  const rendered = preview.querySelector('.memo-rendered');
+
+  if (rendered) {
+    // Clone and inline styles for Outlook compatibility
+    const memoMeta = rendered.querySelector('.memo-meta');
+    const memoBody = rendered.querySelector('.memo-body');
+    const metaHTML = memoMeta ? memoMeta.innerHTML
+      .replace(/<span class="meta-key">/g, '<span style="font-weight:600;margin-right:4px;">')
+      : '';
+
+    // Build inline-styled HTML for paste into Outlook
+    let bodyHTML = memoBody ? memoBody.innerHTML : '';
+    // Inline styles on h3/h4 for Outlook
+    bodyHTML = bodyHTML
+      .replace(/<h3([^>]*)>/g, '<h3$1 style="font-size:15px;font-weight:600;border-bottom:1px solid #ccc;padding-bottom:4px;margin:24px 0 8px;">')
+      .replace(/<h4([^>]*)>/g, '<h4$1 style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin:16px 0 4px;">');
+
+    const html = `
+      <div style="font-family:Arial,sans-serif;font-size:13px;line-height:1.7;color:#1A1A1A;max-width:680px;">
+        <div style="font-size:20px;font-weight:700;margin-bottom:12px;">Weekly Portfolio Update</div>
+        <div style="display:grid;grid-template-columns:auto 1fr;gap:2px 10px;font-size:12px;border-bottom:1px solid #ddd;padding-bottom:12px;margin-bottom:20px;">
+          ${metaHTML}
+        </div>
+        <div>${bodyHTML}</div>
+      </div>`;
+
+    try {
+      const blob = new Blob([html], { type: 'text/html' });
+      const item = new ClipboardItem({ 'text/html': blob });
+      navigator.clipboard.write([item]).then(() => {
+        showToast('✓ Formatted email copied');
+      });
+    } catch (e) {
+      // Fallback to plain text if ClipboardItem not supported
+      navigator.clipboard.writeText(generatedEmailBody).then(() => {
+        showToast('✓ Email copied (plain text)');
+      });
+    }
+  } else {
+    navigator.clipboard.writeText(generatedEmailBody).then(() => {
+      showToast('✓ Email copied to clipboard');
+    });
+  }
 }
 
 function openEmail() {
