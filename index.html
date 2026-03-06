@@ -1418,12 +1418,22 @@ async function generateMemo() {
     grouped[p.dept].push(p);
   });
 
+  // Build a link lookup map: token → URL, for entries that have a link
+  const linkTokenMap = {};
+  let linkTokenIndex = 0;
+
   const projectDetails = DEPT_ORDER
     .filter(d => grouped[d])
     .map(d => {
       const entries = grouped[d].map((p, i) => {
         let entry = `\n  Entry ${i+1}:\n  - Status: ${p.status} ${p.emoji}`;
         if (p.deadline) entry += `\n  - Next Deadline: ${p.deadline}`;
+        if (p.link) {
+          const token = `LNKTK${linkTokenIndex}`;
+          linkTokenMap[token] = p.link;
+          linkTokenIndex++;
+          entry += `\n  - Link token: ${token} (append exactly this token, with no changes, to the end of this entry's sub-header title, separated by a space)`;
+        }
         if (p.description) entry += `\n  - Directing note: ${p.description}`;
         if (p.source) entry += `\n  - Source material (raw — extract what's relevant): ${p.source}`;
         return entry;
@@ -1482,12 +1492,7 @@ Instructions:
     generatedSubject = `Weekly Portfolio Update — ${dept} — ${weekRange}`;
     generatedEmailBody = `To: ${vp}\nFrom: ${sender}\nDate: ${weekRange}\nSubject: ${generatedSubject}\n\n${memoText}`;
 
-    // Build ordered link list matching dept/entry order AI will generate
-    const orderedLinks = DEPT_ORDER
-      .filter(d => grouped[d])
-      .flatMap(d => grouped[d].map(p => p.link || ''));
-
-    renderMemo(memoText, sender, vp, weekRange, dept, orderedLinks);
+    renderMemo(memoText, sender, vp, weekRange, dept, linkTokenMap);
 
   } catch (err) {
     const msg = err?.message || 'Unknown error';
@@ -1503,17 +1508,31 @@ Instructions:
   }
 }
 
-function renderMemo(body, sender, vp, date, dept, orderedLinks) {
+function renderMemo(body, sender, vp, date, dept, linkTokenMap) {
   const preview = document.getElementById('memoPreview');
 
   // Convert markdown to HTML with two-level headers
-  const htmlBody = body
+  let htmlBody = body
     .replace(/^## (.+)$/gm, '<h3 class="dept-header">$1</h3>')
     .replace(/^### (.+)$/gm, '<h4 class="project-header">$1</h4>')
     .replace(/^# (.+)$/gm, '<h3 class="dept-header">$1</h3>')
     .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
     .replace(/\n\n/g, '</p><p>')
     .replace(/\n/g, '<br>');
+
+  // Replace link tokens inside h4 titles with actual hyperlinks
+  if (linkTokenMap && Object.keys(linkTokenMap).length) {
+    htmlBody = htmlBody.replace(/<h4 class="project-header">(.+?)<\/h4>/g, (match, titleContent) => {
+      // Check if any token appears in this title
+      for (const [token, url] of Object.entries(linkTokenMap)) {
+        if (titleContent.includes(token)) {
+          const cleanTitle = titleContent.replace(new RegExp('\\s*' + token + '\\s*'), '').trim();
+          return `<h4 class="project-header"><a href="${url}" target="_blank" rel="noopener" style="color:inherit;text-decoration:underline;text-decoration-color:rgba(0,0,0,0.25);text-underline-offset:2px;">${cleanTitle}</a></h4>`;
+        }
+      }
+      return match;
+    });
+  }
 
   preview.innerHTML = `
     <div class="memo-rendered">
@@ -1528,18 +1547,6 @@ function renderMemo(body, sender, vp, date, dept, orderedLinks) {
       </div>
       <div class="memo-body"><p>${htmlBody}</p></div>
     </div>`;
-
-  // Inject hyperlinks into h4 titles in order
-  if (orderedLinks && orderedLinks.some(l => l)) {
-    const h4s = preview.querySelectorAll('h4.project-header');
-    h4s.forEach((h4, i) => {
-      const link = orderedLinks[i];
-      if (link) {
-        const titleText = h4.innerHTML;
-        h4.innerHTML = `<a href="${link}" target="_blank" rel="noopener" style="color:inherit;text-decoration:underline;text-decoration-color:rgba(0,0,0,0.25);text-underline-offset:2px;">${titleText}</a>`;
-      }
-    });
-  }
 
   document.getElementById('copyBtn').style.display = '';
   document.getElementById('editBtn').style.display = '';
