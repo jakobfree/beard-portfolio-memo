@@ -815,6 +815,7 @@
 let projectCount = 0;
 let generatedEmailBody = '';
 let generatedSubject = '';
+let generatedLinkTokenMap = {};
 
 // ── Set default date to this week's Monday ──
 (function setDefaultDate() {
@@ -1420,6 +1421,7 @@ async function generateMemo() {
 
   // Build a link lookup map: token → URL, for entries that have a link
   const linkTokenMap = {};
+  generatedLinkTokenMap = {}; // reset module-level copy for this generation
   let linkTokenIndex = 0;
 
   const projectDetails = DEPT_ORDER
@@ -1431,6 +1433,7 @@ async function generateMemo() {
         if (p.link) {
           const token = `LNKTK${linkTokenIndex}`;
           linkTokenMap[token] = p.link;
+          generatedLinkTokenMap[token] = p.link; // persist for re-renders
           linkTokenIndex++;
           entry += `\n  - Link token: ${token} (append exactly this token, with no changes, to the end of this entry's sub-header title, separated by a space)`;
         }
@@ -1670,7 +1673,7 @@ function cancelEditMode() {
       return `${fmt(monday)} – ${fmt(friday)}`;
     })();
     const memoText = generatedEmailBody.split('\n\n').slice(1).join('\n\n');
-    renderMemo(memoText, sender, vp, weekRange, dept);
+    renderMemo(memoText, sender, vp, weekRange, dept, generatedLinkTokenMap);
   }
 }
 
