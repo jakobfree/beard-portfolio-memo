@@ -1456,8 +1456,8 @@ Instructions:
 - Tone: Professional but concise. Executive-ready.
 - Format as an email body (no subject line in the body).
 - Open with a 2-3 sentence executive summary. Act as an editor, not a reporter — do not summarize everything. Identify only the 2-3 most significant items across the entire portfolio: what is most at risk or blocked, what has just been completed or hit a major milestone, and/or what requires the VP's decision or attention this week. Every sentence must reference a specific project or issue by name. Do not write generic observations about the portfolio.
-- After the summary, organize the body into sections matching the department/section groupings provided. Use the department name as a section header (e.g. "Awards", "Branding", etc.). Only include sections that have entries.
-- Within each section, generate an appropriate, context-sensitive sub-header title for each entry based on its description. The title should reflect the nature of the entry — it could be a project name, an incident, a roadblock, a general update, a decision, etc. Whatever best captures what the entry is actually about. Append the status emoji at the end of the title (e.g. "Website Redesign 🟢" or "Vendor Delay 🔴"). Do not label entries as "Entry 1", "Entry 2", etc.
+- After the summary, organize the body into sections matching the department/section groupings provided. Format each department name as a `##` markdown heading (e.g. `## Awards`, `## Branding`). Only include sections that have entries.
+- Within each section, format each entry sub-header as a `###` markdown heading. Generate an appropriate, context-sensitive title for each entry based on its description. The title should reflect the nature of the entry — it could be a project name, an incident, a roadblock, a general update, a decision, etc. Whatever best captures what the entry is actually about. Append the status emoji at the end of the title on the same line (e.g. `### Website Redesign 🟢` or `### Vendor Delay 🔴`). If an entry specifies a link token, append it after the emoji on the same `###` line (e.g. `### Website Redesign 🟢 LNKTK0`). Do not label entries as "Entry 1", "Entry 2", etc.
 - For each entry, write a clean, polished paragraph synthesizing the raw description notes into professional language. Include status, progress, and any risks or blockers. Only mention a deadline if one was explicitly provided. Strictly no more than 4 sentences per entry — prioritize the most important information.
 - End with a brief "Next Steps / Asks" section only if there are blockers or action items that require the VP's attention. Otherwise close with a single forward-looking sentence.
 - Do not use jargon or filler. Be direct and crisp.
@@ -1517,6 +1517,7 @@ function renderMemo(body, sender, vp, date, dept, linkTokenMap) {
   // Convert markdown to HTML with two-level headers
   let htmlBody = body
     .replace(/^## (.+)$/gm, '<h3 class="dept-header">$1</h3>')
+    .replace(/^#### (.+)$/gm, '<h4 class="project-header">$1</h4>')
     .replace(/^### (.+)$/gm, '<h4 class="project-header">$1</h4>')
     .replace(/^# (.+)$/gm, '<h3 class="dept-header">$1</h3>')
     .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
